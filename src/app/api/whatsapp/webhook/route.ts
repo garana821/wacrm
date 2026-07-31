@@ -243,9 +243,15 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
       }
 
       // Handle incoming messages
-      if (!value.messages || value.messages.length === 0) continue
+      console.log('[WEBHOOK INBOUND] Payload value:', JSON.stringify(value, null, 2))
 
-      const phoneNumberId = value.metadata.phone_number_id
+      if (!value.messages || value.messages.length === 0) {
+        console.log('[WEBHOOK INBOUND] Skipped: No messages in payload value')
+        continue
+      }
+
+      const phoneNumberId = value.metadata?.phone_number_id
+      console.log('[WEBHOOK INBOUND] Received phone_number_id:', phoneNumberId)
 
       // Find user's config by phone_number_id. `.single()` returns
       // PGRST116 for both 0 rows AND ≥2 rows — distinguish them so
@@ -259,7 +265,7 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
 
       if (configError) {
         console.error(
-          'Error fetching whatsapp_config for phone_number_id:',
+          '[WEBHOOK INBOUND] Error fetching whatsapp_config for phone_number_id:',
           phoneNumberId,
           configError
         )
@@ -267,13 +273,13 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
       }
 
       if (!configRows || configRows.length === 0) {
-        console.error('No config found for phone_number_id:', phoneNumberId)
+        console.error('[WEBHOOK INBOUND] No config found for phone_number_id:', phoneNumberId)
         continue
       }
 
       if (configRows.length > 1) {
         console.error(
-          `Multiple configs (${configRows.length}) found for phone_number_id:`,
+          `[WEBHOOK INBOUND] Multiple configs (${configRows.length}) found for phone_number_id:`,
           phoneNumberId,
           '— inbound message dropped. Resolve duplicates so each number maps to a single account.',
           'Account owners:',
@@ -289,6 +295,13 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
       for (let i = 0; i < value.messages.length; i++) {
         const message = value.messages[i]
         const contact = value.contacts ? (value.contacts[i] || value.contacts[0]) : undefined
+
+        console.log(`[WEBHOOK INBOUND] Processing message index ${i}:`, {
+          msgId: message.id,
+          from: message.from,
+          contactProfileName: contact?.profile?.name,
+          contactWaId: contact?.wa_id
+        })
 
         await processMessage(
           message,
@@ -570,8 +583,11 @@ async function processMessage(
   configOwnerUserId: string,
   accessToken: string
 ) {
-  const senderPhone = normalizePhone(message.from)
-  const contactName = contact.profile.name
+  const rawPhone = message.from || contact?.wa_id || ''
+  const senderPhone = normalizePhone(rawPhone)
+  const contactName = contact?.profile?.name || ''
+
+  console.log('[WEBHOOK INBOUND] Resolved sender details:', { rawPhone, senderPhone, contactName })
 
   // Find or create contact
   const contactOutcome = await findOrCreateContact(
@@ -580,8 +596,12 @@ async function processMessage(
     senderPhone,
     contactName
   )
-  if (!contactOutcome) return
+  if (!contactOutcome) {
+    console.error('[WEBHOOK INBOUND] Failed to find or create contact for phone:', senderPhone)
+    return
+  }
   const contactRecord = contactOutcome.contact
+  console.log('[WEBHOOK INBOUND] Contact record active:', { id: contactRecord.id, phone: contactRecord.phone, name: contactRecord.name })
 
   // Find or create conversation
   const convResult = await findOrCreateConversation(
