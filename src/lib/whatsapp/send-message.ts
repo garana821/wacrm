@@ -238,7 +238,8 @@ export async function sendMessageToConversation(
     );
   }
 
-  const sanitizedPhone = sanitizePhoneForMeta(contact.phone);
+  const isBsuid = contact.phone.length > 15 || !/^\+?[1-9]\d{6,14}$/.test(contact.phone)
+  const sanitizedPhone = isBsuid ? contact.phone.trim() : sanitizePhoneForMeta(contact.phone);
   if (!isValidE164(sanitizedPhone)) {
     throw new SendMessageError(
       'bad_request',

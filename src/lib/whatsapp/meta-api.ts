@@ -234,10 +234,14 @@ export async function sendTextMessage(
 ): Promise<MetaSendResult> {
   const { phoneNumberId, accessToken, to, text, contextMessageId } = args
   const url = `${META_API_BASE}/${phoneNumberId}/messages`
+  
+  // Meta Cloud API: BSUIDs or non-phone user IDs use 'recipient', standard phones use 'to'
+  const isBsuid = to.length > 15 || !/^\+?[1-9]\d{6,14}$/.test(to)
+
   const body: Record<string, unknown> = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to,
+    ...(isBsuid ? { recipient: to } : { to }),
     type: 'text',
     text: { body: text },
   }
@@ -301,10 +305,12 @@ export async function sendMediaMessage(
   if (caption && kind !== 'audio') media.caption = caption
   if (kind === 'document' && filename) media.filename = filename
 
+  const isBsuid = to.length > 15 || !/^\+?[1-9]\d{6,14}$/.test(to)
+
   const body: Record<string, unknown> = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to,
+    ...(isBsuid ? { recipient: to } : { to }),
     type: kind,
     [kind]: media,
   }
@@ -417,10 +423,12 @@ export async function sendTemplateMessage(
     ]
   }
 
+  const isBsuidTemplate = to.length > 15 || !/^\+?[1-9]\d{6,14}$/.test(to)
+
   const body: Record<string, unknown> = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to,
+    ...(isBsuidTemplate ? { recipient: to } : { to }),
     type: 'template',
     template: templatePayload,
   }
