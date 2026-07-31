@@ -35,7 +35,8 @@ function supabaseAdmin() {
 
 interface WhatsAppMessage {
   id: string
-  from: string
+  from?: string
+  from_user_id?: string
   timestamp: string
   type: string
   text?: { body: string }
@@ -71,8 +72,9 @@ interface WhatsAppWebhookEntry {
         phone_number_id: string
       }
       contacts?: Array<{
-        profile: { name: string }
-        wa_id: string
+        profile?: { name?: string; username?: string }
+        wa_id?: string
+        user_id?: string
       }>
       messages?: WhatsAppMessage[]
       statuses?: Array<{
@@ -299,8 +301,11 @@ async function processWebhook(body: { entry?: WhatsAppWebhookEntry[] }) {
         console.log(`[WEBHOOK INBOUND] Processing message index ${i}:`, {
           msgId: message.id,
           from: message.from,
+          fromUserId: message.from_user_id,
           contactProfileName: contact?.profile?.name,
-          contactWaId: contact?.wa_id
+          contactUsername: contact?.profile?.username,
+          contactWaId: contact?.wa_id,
+          contactUserId: contact?.user_id
         })
 
         await processMessage(
@@ -572,7 +577,7 @@ async function handleReaction(
 
 async function processMessage(
   message: WhatsAppMessage,
-  contact: { profile?: { name?: string }; wa_id?: string } | undefined,
+  contact: { profile?: { name?: string; username?: string }; wa_id?: string; user_id?: string } | undefined,
   // Tenancy. Resolved from the matched whatsapp_config row; every
   // contact / conversation / message row created downstream is
   // stamped with this so any member of the account can see it.
@@ -583,9 +588,9 @@ async function processMessage(
   configOwnerUserId: string,
   accessToken: string
 ) {
-  const rawPhone = message.from || contact?.wa_id || ''
-  const senderPhone = normalizePhone(rawPhone)
-  const contactName = contact?.profile?.name || ''
+  const rawPhone = message.from || contact?.wa_id || message.from_user_id || contact?.user_id || contact?.profile?.username || ''
+  const senderPhone = normalizePhone(rawPhone) || rawPhone
+  const contactName = contact?.profile?.name || contact?.profile?.username || senderPhone
 
   console.log('[WEBHOOK INBOUND] Resolved sender details:', { rawPhone, senderPhone, contactName })
 
