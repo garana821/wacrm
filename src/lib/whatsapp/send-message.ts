@@ -449,23 +449,37 @@ export async function sendMessageToConversation(
   const interactiveBody =
     messageType === 'interactive' ? interactivePayload!.body : null;
 
-  const { data: messageRecord, error: msgError } = await db
+  const insertPayload: Record<string, any> = {
+    conversation_id: conversationId,
+    sender_type: 'agent',
+    content_type: messageType,
+    content_text: interactiveBody ?? contentText ?? null,
+    media_url: mediaUrl || null,
+    template_name: templateName || null,
+    message_id: waMessageId,
+    status: 'sent',
+    reply_to_message_id: replyToMessageId || null,
+  };
+  if (messageType === 'interactive' && interactivePayload) {
+    insertPayload.interactive_payload = interactivePayload;
+  }
+
+  let { data: messageRecord, error: msgError } = await db
     .from('messages')
-    .insert({
-      conversation_id: conversationId,
-      sender_type: 'agent',
-      content_type: messageType,
-      content_text: interactiveBody ?? contentText ?? null,
-      media_url: mediaUrl || null,
-      template_name: templateName || null,
-      interactive_payload:
-        messageType === 'interactive' ? interactivePayload : null,
-      message_id: waMessageId,
-      status: 'sent',
-      reply_to_message_id: replyToMessageId || null,
-    })
+    .insert(insertPayload)
     .select()
     .single();
+
+  if (msgError && msgError.message?.includes('interactive_payload') && insertPayload.interactive_payload) {
+    delete insertPayload.interactive_payload;
+    const retry = await db
+      .from('messages')
+      .insert(insertPayload)
+      .select()
+      .single();
+    messageRecord = retry.data;
+    msgError = retry.error;
+  }
 
   if (msgError) {
     console.error('[send-message] error inserting sent message:', msgError);
