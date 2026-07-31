@@ -37,7 +37,8 @@ export function phonesMatch(phone1: string, phone2: string): boolean {
  * Accepts with or without + prefix.
  */
 export function isValidE164(phone: string): boolean {
-  return /^\+?[1-9]\d{6,14}$/.test(phone)
+  // Accepts standard E.164 (7-15 digits) or Meta User IDs (up to 16 digits)
+  return /^\+?[1-9]\d{6,15}$/.test(phone)
 }
 
 /**
