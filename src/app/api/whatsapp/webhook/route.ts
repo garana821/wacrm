@@ -588,19 +588,21 @@ async function processMessage(
   configOwnerUserId: string,
   accessToken: string
 ) {
-  const rawPhone = message.from || contact?.wa_id || message.from_user_id || contact?.user_id || contact?.profile?.username || ''
+  const rawPhone = message.from || contact?.wa_id || message.from_user_id || contact?.user_id || ''
   // If rawPhone has non-digits (like BSUID "DO.152..."), preserve rawPhone; otherwise normalize digits
   const senderPhone = /\D/.test(rawPhone) ? rawPhone : (normalizePhone(rawPhone) || rawPhone)
   const contactName = contact?.profile?.name || contact?.profile?.username || senderPhone
+  const contactUsername = contact?.profile?.username || ''
 
-  console.log('[WEBHOOK INBOUND] Resolved sender details:', { rawPhone, senderPhone, contactName })
+  console.log('[WEBHOOK INBOUND] Resolved sender details:', { rawPhone, senderPhone, contactName, contactUsername })
 
   // Find or create contact
   const contactOutcome = await findOrCreateContact(
     accountId,
     configOwnerUserId,
     senderPhone,
-    contactName
+    contactName,
+    contactUsername
   )
   if (!contactOutcome) {
     console.error('[WEBHOOK INBOUND] Failed to find or create contact for phone:', senderPhone)
@@ -1019,7 +1021,8 @@ async function findOrCreateContact(
   accountId: string,
   configOwnerUserId: string,
   phone: string,
-  name: string
+  name: string,
+  username?: string
 ): Promise<ContactOutcome | null> {
   // Find an existing contact for this account by phone. The shared
   // helper pre-filters in SQL by the last-8-digit suffix (so we don't
@@ -1041,6 +1044,9 @@ async function findOrCreateContact(
     if (phone && (!existingContact.phone || existingContact.phone !== phone)) {
       updates.phone = phone
     }
+    if (username && existingContact.username !== username) {
+      updates.username = username
+    }
 
     if (Object.keys(updates).length > 0) {
       updates.updated_at = new Date().toISOString()
@@ -1051,6 +1057,7 @@ async function findOrCreateContact(
 
       existingContact.name = updates.name ?? existingContact.name
       existingContact.phone = updates.phone ?? existingContact.phone
+      existingContact.username = updates.username ?? existingContact.username
     }
     return { contact: existingContact, wasCreated: false }
   }
@@ -1059,14 +1066,19 @@ async function findOrCreateContact(
   // user_id is the NOT NULL FK audit column (no inbound message
   // has a single "user who created" it — we attribute to the
   // WhatsApp config owner as a stable default).
+  const insertPayload: Record<string, any> = {
+    account_id: accountId,
+    user_id: configOwnerUserId,
+    phone: phone || '',
+    name: (name && name !== phone) ? name : (phone || 'Desconocido'),
+  }
+  if (username) {
+    insertPayload.username = username
+  }
+
   const { data: newContact, error: createError } = await supabaseAdmin()
     .from('contacts')
-    .insert({
-      account_id: accountId,
-      user_id: configOwnerUserId,
-      phone: phone || '',
-      name: (name && name !== phone) ? name : (phone || 'Desconocido'),
-    })
+    .insert(insertPayload)
     .select()
     .single()
 

@@ -156,8 +156,17 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             )}
           </div>
 
-          {/* Phone / User ID */}
+          {/* Username / Phone / User ID */}
           <div className="mt-4 space-y-2">
+            {contact.username && (
+              <div className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground bg-muted/40">
+                <AtSign className="h-4 w-4 text-primary" />
+                <span className="flex-1 text-left truncate font-medium text-foreground">
+                  @{contact.username}
+                </span>
+              </div>
+            )}
+
             <button
               onClick={handleCopyPhone}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"

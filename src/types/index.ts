@@ -105,6 +105,7 @@ export interface Contact {
    *  and unique per account. Read-only. */
   phone_normalized?: string;
   name?: string;
+  username?: string;
   email?: string;
   company?: string;
   avatar_url?: string;
