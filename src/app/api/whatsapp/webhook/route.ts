@@ -619,7 +619,7 @@ async function processMessage(
 
   // Parse message content based on type
   const { contentText, mediaUrl, mediaType, interactiveReplyId } =
-    await parseMessageContent(message, accessToken)
+    await parseMessageContent(message, accessToken, accountId)
 
   // Resolve swipe-reply context if present. A missing parent is fine —
   // we just store NULL and the UI renders the message without a quote.
@@ -842,7 +842,8 @@ async function processMessage(
 
 async function parseMessageContent(
   message: WhatsAppMessage,
-  accessToken: string
+  accessToken: string,
+  accountId: string
 ): Promise<{
   contentText: string | null
   mediaUrl: string | null
@@ -924,8 +925,31 @@ async function parseMessageContent(
 
     case 'audio':
       if (message.audio?.id) {
+        let transcribedText: string | null = null
+        try {
+          const configRow = await loadAiConfig(supabaseAdmin(), accountId)
+          if (configRow?.audioTranscriptionEnabled && configRow?.apiKey) {
+            const mediaMeta = await getMediaUrl({ mediaId: message.audio.id, accessToken })
+            if (mediaMeta?.url) {
+              const audioBuffer = await downloadMedia({ mediaUrl: mediaMeta.url, accessToken })
+              const { transcribeAudioWithWhisper } = await import('@/lib/ai/transcribe')
+              transcribedText = await transcribeAudioWithWhisper({
+                apiKey: configRow.apiKey,
+                audioBuffer,
+                filename: `voice_${message.audio.id}.ogg`,
+              })
+              if (transcribedText) {
+                console.log(`[Webhook Audio] Transcribed audio ${message.audio.id}: "${transcribedText}"`)
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[Webhook Audio] Failed to transcribe audio:', err)
+        }
+
         return {
           ...empty,
+          contentText: transcribedText ? `🎤 ${transcribedText}` : null,
           mediaUrl: await verifyAndBuildUrl(message.audio.id),
           mediaType: message.audio.mime_type,
         }

@@ -71,6 +71,7 @@ export function AiConfig() {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [isActive, setIsActive] = useState(false);
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
+  const [audioTranscriptionEnabled, setAudioTranscriptionEnabled] = useState(false);
   const [maxPerConversation, setMaxPerConversation] = useState(3);
   // Empty string = leave unassigned (shared queue).
   const [handoffAgentId, setHandoffAgentId] = useState('');
@@ -98,6 +99,7 @@ export function AiConfig() {
         setSystemPrompt(data.system_prompt ?? '');
         setIsActive(data.is_active);
         setAutoReplyEnabled(data.auto_reply_enabled);
+        setAudioTranscriptionEnabled(data.audio_transcription_enabled);
         setMaxPerConversation(data.auto_reply_max_per_conversation ?? 3);
         setHandoffAgentId(data.handoff_agent_id ?? '');
         setHasStoredKey(Boolean(data.has_key));
@@ -149,6 +151,7 @@ export function AiConfig() {
     system_prompt: systemPrompt.trim() || null,
     is_active: isActive,
     auto_reply_enabled: autoReplyEnabled,
+    audio_transcription_enabled: audioTranscriptionEnabled,
     auto_reply_max_per_conversation: maxPerConversation,
     handoff_agent_id: handoffAgentId || null,
   });
@@ -429,6 +432,22 @@ export function AiConfig() {
               <Switch
                 checked={autoReplyEnabled}
                 onCheckedChange={setAutoReplyEnabled}
+                disabled={disabled || !isActive}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Transcripción de Audio (Notas de Voz)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Convierte automáticamente las notas de voz recibidas a texto usando OpenAI Whisper para que el Agente IA pueda entenderlas y responderlas.
+                </p>
+              </div>
+              <Switch
+                checked={audioTranscriptionEnabled}
+                onCheckedChange={setAudioTranscriptionEnabled}
                 disabled={disabled || !isActive}
               />
             </div>
