@@ -165,6 +165,7 @@ export async function POST(request: Request) {
           systemPrompt,
           isActive,
           autoReplyEnabled,
+          audioTranscriptionEnabled,
           autoReplyMaxPerConversation: maxPer,
           handoffAgentId: null,
           embeddingsApiKey: null,

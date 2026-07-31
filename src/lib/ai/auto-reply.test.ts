@@ -74,6 +74,7 @@ function aiConfig(overrides: Partial<AiConfig> = {}): AiConfig {
     systemPrompt: null,
     isActive: true,
     autoReplyEnabled: true,
+    audioTranscriptionEnabled: false,
     autoReplyMaxPerConversation: 3,
     handoffAgentId: null,
     embeddingsApiKey: null,
