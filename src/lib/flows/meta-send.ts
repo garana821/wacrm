@@ -77,7 +77,8 @@ export async function engineSendText(
     throw new Error('contact not found for this account')
   }
 
-  const sanitized = sanitizePhoneForMeta(contact.phone)
+  const isBsuid = contact.phone.length > 15 || !/^\+?[1-9]\d{6,14}$/.test(contact.phone)
+  const sanitized = isBsuid ? contact.phone.trim() : sanitizePhoneForMeta(contact.phone)
   if (!isValidE164(sanitized)) {
     throw new Error(`contact phone invalid: ${contact.phone}`)
   }
@@ -103,7 +104,7 @@ export async function engineSendText(
     return r.messageId
   }
 
-  const variants = phoneVariants(sanitized)
+  const variants = isBsuid ? [sanitized] : phoneVariants(sanitized)
   let workingPhone = sanitized
   let waMessageId = ''
   let lastError: unknown = null
