@@ -1028,12 +1028,23 @@ async function findOrCreateContact(
   )
 
   if (existingContact) {
-    // Update name if it changed
-    if (name && name !== existingContact.name) {
+    const updates: Record<string, any> = {}
+    if (name && name !== existingContact.name && name !== phone) {
+      updates.name = name
+    }
+    if (phone && (!existingContact.phone || existingContact.phone !== phone)) {
+      updates.phone = phone
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updates.updated_at = new Date().toISOString()
       await supabaseAdmin()
         .from('contacts')
-        .update({ name, updated_at: new Date().toISOString() })
+        .update(updates)
         .eq('id', existingContact.id)
+
+      existingContact.name = updates.name ?? existingContact.name
+      existingContact.phone = updates.phone ?? existingContact.phone
     }
     return { contact: existingContact, wasCreated: false }
   }
@@ -1047,8 +1058,8 @@ async function findOrCreateContact(
     .insert({
       account_id: accountId,
       user_id: configOwnerUserId,
-      phone,
-      name: name || phone,
+      phone: phone || '',
+      name: (name && name !== phone) ? name : (phone || 'Desconocido'),
     })
     .select()
     .single()
