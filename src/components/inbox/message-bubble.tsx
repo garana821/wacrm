@@ -172,6 +172,11 @@ function MessageContent({ message, t }: { message: Message, t: ReturnType<typeof
           ) : (
             <MediaUnavailable label={t("audio")} t={t} />
           )}
+          {message.content_text && (
+            <p className="mt-1 whitespace-pre-wrap break-words text-xs italic text-muted-foreground">
+              {message.content_text}
+            </p>
+          )}
         </div>
       );
 
