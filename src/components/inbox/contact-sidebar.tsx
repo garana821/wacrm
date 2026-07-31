@@ -15,6 +15,7 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  AtSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -155,18 +156,22 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             )}
           </div>
 
-          {/* Phone */}
+          {/* Phone / User ID */}
           <div className="mt-4 space-y-2">
             <button
               onClick={handleCopyPhone}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-left">{contact.phone}</span>
-              {copied ? (
-                <Check className="h-3 w-3 text-primary" />
+              {/^\+?[0-9]{7,15}$/.test(contact.phone || '') ? (
+                <Phone className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <Copy className="h-3 w-3 text-muted-foreground" />
+                <AtSign className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="flex-1 text-left truncate">{contact.phone}</span>
+              {copied ? (
+                <Check className="h-3 w-3 text-primary flex-shrink-0" />
+              ) : (
+                <Copy className="h-3 w-3 text-muted-foreground flex-shrink-0" />
               )}
             </button>
 
