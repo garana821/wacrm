@@ -932,7 +932,7 @@ async function parseMessageContent(
           if (configRow?.audioTranscriptionEnabled && configRow?.apiKey) {
             const mediaMeta = await getMediaUrl({ mediaId: message.audio.id, accessToken })
             if (mediaMeta?.url) {
-              const audioBuffer = await downloadMedia({ mediaUrl: mediaMeta.url, accessToken })
+              const { buffer: audioBuffer } = await downloadMedia({ downloadUrl: mediaMeta.url, accessToken })
               const { transcribeAudioWithWhisper } = await import('@/lib/ai/transcribe')
               transcribedText = await transcribeAudioWithWhisper({
                 apiKey: configRow.apiKey,
