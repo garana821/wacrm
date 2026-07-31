@@ -589,7 +589,8 @@ async function processMessage(
   accessToken: string
 ) {
   const rawPhone = message.from || contact?.wa_id || message.from_user_id || contact?.user_id || contact?.profile?.username || ''
-  const senderPhone = normalizePhone(rawPhone) || rawPhone
+  // If rawPhone has non-digits (like BSUID "DO.152..."), preserve rawPhone; otherwise normalize digits
+  const senderPhone = /\D/.test(rawPhone) ? rawPhone : (normalizePhone(rawPhone) || rawPhone)
   const contactName = contact?.profile?.name || contact?.profile?.username || senderPhone
 
   console.log('[WEBHOOK INBOUND] Resolved sender details:', { rawPhone, senderPhone, contactName })
